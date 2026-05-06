@@ -5,19 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Безопасный интернет</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
+            font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 20px;
+            margin: 0;
         }
         .card {
             background: white;
@@ -25,18 +21,16 @@
             padding: 40px;
             max-width: 500px;
             width: 100%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
         h1 {
             color: #333;
             margin-bottom: 10px;
-            font-size: 28px;
         }
-        .subtitle {
+        p {
             color: #666;
             margin-bottom: 30px;
-            font-size: 14px;
         }
         input {
             width: 100%;
@@ -45,114 +39,121 @@
             border: 2px solid #e0e0e0;
             border-radius: 15px;
             margin-bottom: 20px;
-            transition: 0.3s;
-        }
-        input:focus {
-            outline: none;
-            border-color: #667eea;
+            box-sizing: border-box;
         }
         button {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 15px 30px;
+            padding: 15px;
             font-size: 18px;
             border-radius: 15px;
             cursor: pointer;
             width: 100%;
             font-weight: bold;
-            transition: transform 0.2s;
         }
         button:hover {
-            transform: scale(1.02);
-        }
-        button:active {
-            transform: scale(0.98);
-        }
-        .result {
-            margin-top: 30px;
-            padding: 20px;
-            border-radius: 15px;
-            font-size: 20px;
-            font-weight: bold;
+            opacity: 0.9;
         }
         .safe {
             background: #d4edda;
             color: #155724;
-            border: 2px solid #28a745;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            font-weight: bold;
         }
         .danger {
             background: #f8d7da;
             color: #721c24;
-            border: 2px solid #dc3545;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            font-weight: bold;
         }
-        .loading {
+        .warning {
             background: #fff3cd;
             color: #856404;
-            border: 2px solid #ffc107;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
     <div class="card">
         <h1>Безопасный интернет</h1>
-        <div class="subtitle">Проверка ссылок на опасность</div>
+        <p>Проверка ссылок на опасность</p>
         
-        <input type="text" id="url" placeholder="Вставьте ссылку для проверки">
-        <button onclick="checkUrl()">Проверить ссылку</button>
+        <input type="text" id="url" placeholder="Вставьте ссылку">
+        <button onclick="checkLink()">Проверить</button>
         
         <div id="result"></div>
     </div>
 
     <script>
-        const API_KEY = "da7db333ab374a193066011c769622baa450e256e2e9a3baa2fee69d54005caa";
+        // База опасных сайтов (демонстрационная)
+        const blacklist = [
+            "free-games.ru",
+            "cash-gift.com", 
+            "hack-tools.ru",
+            "vzlom-igr.ru",
+            "besplatno-vse.ru",
+            "win-prize.ru",
+            "money-gift.ru",
+            "hack-free.ru"
+        ];
         
-        async function checkUrl() {
+        // База безопасных сайтов
+        const whitelist = [
+            "yandex.ru",
+            "google.com",
+            "youtube.com",
+            "wikipedia.org",
+            "vk.com",
+            "mail.ru",
+            "ozon.ru",
+            "wildberries.ru",
+            "school.ru",
+            "edu.ru"
+        ];
+        
+        function getDomain(url) {
+            let domain = url;
+            if (domain.includes("://")) {
+                domain = domain.split("://")[1];
+            }
+            if (domain.includes("/")) {
+                domain = domain.split("/")[0];
+            }
+            domain = domain.replace("www.", "");
+            return domain.toLowerCase();
+        }
+        
+        function checkLink() {
             let url = document.getElementById("url").value;
             let resultDiv = document.getElementById("result");
             
             if (!url) {
-                resultDiv.innerHTML = '<div class="result danger">Введите ссылку!</div>';
+                resultDiv.innerHTML = '<div class="warning">Введите ссылку!</div>';
                 return;
             }
             
-            if (!url.startsWith("http")) {
-                url = "https://" + url;
-            }
+            let domain = getDomain(url);
             
-            resultDiv.innerHTML = '<div class="result loading">Проверка... Подождите 10-15 секунд</div>';
+            // Имитация проверки (задержка 1 секунда)
+            resultDiv.innerHTML = '<div class="warning">Проверка...</div>';
             
-            try {
-                let response = await fetch("https://www.virustotal.com/api/v3/urls", {
-                    method: "POST",
-                    headers: {
-                        "x-apikey": API_KEY,
-                        "Content-Type": "application/x-www-form-urlencoded"
-                    },
-                    body: "url=" + encodeURIComponent(url)
-                });
-                
-                let data = await response.json();
-                let analysisId = data.data.id;
-                
-                setTimeout(async () => {
-                    let resultResponse = await fetch(`https://www.virustotal.com/api/v3/analyses/${analysisId}`, {
-                        headers: { "x-apikey": API_KEY }
-                    });
-                    
-                    let resultData = await resultResponse.json();
-                    let stats = resultData.data.attributes.stats;
-                    
-                    if (stats.malicious > 0 || stats.suspicious > 2) {
-                        resultDiv.innerHTML = '<div class="result danger">ОПАСНО! Не переходите по ссылке!</div>';
-                    } else {
-                        resultDiv.innerHTML = '<div class="result safe">БЕЗОПАСНО! Можно переходить.</div>';
-                    }
-                }, 12000);
-                
-            } catch(error) {
-                resultDiv.innerHTML = '<div class="result danger">Ошибка проверки. Попробуйте другую ссылку.</div>';
-            }
+            setTimeout(function() {
+                if (blacklist.includes(domain)) {
+                    resultDiv.innerHTML = '<div class="danger">ОПАСНО! Не переходите по ссылке!</div>';
+                } else if (whitelist.includes(domain)) {
+                    resultDiv.innerHTML = '<div class="safe">БЕЗОПАСНО! Можно переходить.</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="warning">Внимание! Сайт не проверен. Будьте осторожны.</div>';
+                }
+            }, 1000);
         }
     </script>
 </body>
