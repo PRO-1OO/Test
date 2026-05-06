@@ -1,160 +1,54 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Безопасный интернет</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            margin: 0;
-        }
-        .card {
-            background: white;
-            border-radius: 30px;
-            padding: 40px;
-            max-width: 500px;
-            width: 100%;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-        }
-        p {
-            color: #666;
-            margin-bottom: 30px;
-        }
-        input {
-            width: 100%;
-            padding: 15px;
-            font-size: 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            box-sizing: border-box;
-        }
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px;
-            font-size: 18px;
-            border-radius: 15px;
-            cursor: pointer;
-            width: 100%;
-            font-weight: bold;
-        }
-        button:hover {
-            opacity: 0.9;
-        }
-        .safe {
-            background: #d4edda;
-            color: #155724;
-            padding: 20px;
-            border-radius: 15px;
-            margin-top: 20px;
-            font-weight: bold;
-        }
-        .danger {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 20px;
-            border-radius: 15px;
-            margin-top: 20px;
-            font-weight: bold;
-        }
-        .warning {
-            background: #fff3cd;
-            color: #856404;
-            padding: 20px;
-            border-radius: 15px;
-            margin-top: 20px;
-            font-weight: bold;
-        }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h1>Безопасный интернет</h1>
-        <p>Проверка ссылок на опасность</p>
-        
-        <input type="text" id="url" placeholder="Вставьте ссылку">
-        <button onclick="checkLink()">Проверить</button>
-        
-        <div id="result"></div>
-    </div>
+<script>
+const API_KEY = "ТВОЙ_API_КЛЮЧ";
 
-    <script>
-        // База опасных сайтов (демонстрационная)
-        const blacklist = [
-            "free-games.ru",
-            "cash-gift.com", 
-            "hack-tools.ru",
-            "vzlom-igr.ru",
-            "besplatno-vse.ru",
-            "win-prize.ru",
-            "money-gift.ru",
-            "hack-free.ru"
-        ];
-        
-        // База безопасных сайтов
-        const whitelist = [
-            "yandex.ru",
-            "google.com",
-            "youtube.com",
-            "wikipedia.org",
-            "vk.com",
-            "mail.ru",
-            "ozon.ru",
-            "wildberries.ru",
-            "school.ru",
-            "edu.ru"
-        ];
-        
-        function getDomain(url) {
-            let domain = url;
-            if (domain.includes("://")) {
-                domain = domain.split("://")[1];
+function urlToBase64(url) {
+    return btoa(url)
+        .replace(/=/g, "")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_");
+}
+
+async function checkUrl() {
+    let url = document.getElementById("url").value.trim();
+    let resultDiv = document.getElementById("result");
+
+    if (!url) {
+        resultDiv.innerHTML = '<div class="result danger">Введите ссылку!</div>';
+        return;
+    }
+
+    if (!url.startsWith("http")) {
+        url = "https://" + url;
+    }
+
+    resultDiv.innerHTML = '<div class="result loading">Проверка...</div>';
+
+    try {
+        let encodedUrl = urlToBase64(url);
+
+        let response = await fetch(`https://www.virustotal.com/api/v3/urls/${encodedUrl}`, {
+            method: "GET",
+            headers: {
+                "x-apikey": API_KEY
             }
-            if (domain.includes("/")) {
-                domain = domain.split("/")[0];
-            }
-            domain = domain.replace("www.", "");
-            return domain.toLowerCase();
+        });
+
+        if (!response.ok) {
+            throw new Error("API error");
         }
-        
-        function checkLink() {
-            let url = document.getElementById("url").value;
-            let resultDiv = document.getElementById("result");
-            
-            if (!url) {
-                resultDiv.innerHTML = '<div class="warning">Введите ссылку!</div>';
-                return;
-            }
-            
-            let domain = getDomain(url);
-            
-            // Имитация проверки (задержка 1 секунда)
-            resultDiv.innerHTML = '<div class="warning">Проверка...</div>';
-            
-            setTimeout(function() {
-                if (blacklist.includes(domain)) {
-                    resultDiv.innerHTML = '<div class="danger">ОПАСНО! Не переходите по ссылке!</div>';
-                } else if (whitelist.includes(domain)) {
-                    resultDiv.innerHTML = '<div class="safe">БЕЗОПАСНО! Можно переходить.</div>';
-                } else {
-                    resultDiv.innerHTML = '<div class="warning">Внимание! Сайт не проверен. Будьте осторожны.</div>';
-                }
-            }, 1000);
+
+        let data = await response.json();
+        let stats = data.data.attributes.last_analysis_stats;
+
+        if (stats.malicious > 0 || stats.suspicious > 2) {
+            resultDiv.innerHTML = '<div class="result danger">ОПАСНО!</div>';
+        } else {
+            resultDiv.innerHTML = '<div class="result safe">БЕЗОПАСНО</div>';
         }
-    </script>
-</body>
-</html>
+
+    } catch (error) {
+        console.error(error);
+        resultDiv.innerHTML = '<div class="result danger">Ошибка проверки</div>';
+    }
+}
+</script>
